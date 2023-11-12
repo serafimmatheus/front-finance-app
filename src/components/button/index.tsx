@@ -31,11 +31,11 @@ export function MyButton({
 
   return (
     <button
+      {...rest}
       onClick={handleClick}
       disabled={isLoad}
       type={ctaType}
       className={`${bgColor} ${textColor} rounded-xl p-4 text-xs`}
-      {...rest}
     >
       {children}
     </button>

@@ -3,6 +3,7 @@ import { BalenceCard } from "@/components/balenceCard";
 import { HeaderApp } from "@/components/headerApp";
 import { ModalAddTransactions } from "@/components/modal/modalAddTranactions";
 import { Export, Plus } from "@phosphor-icons/react";
+import { NextSeo } from "next-seo";
 import { useState } from "react";
 import Chart from "react-google-charts";
 
@@ -25,7 +26,12 @@ export default function DashbordPage() {
 
   return (
     <>
-      {openModal && <ModalAddTransactions onRequestClose={setOpenModal} />}
+      <NextSeo
+        title="Dashboard | Finance App"
+        description="Controle suas finanças pessoais de maneira fácil e inteligente!"
+        noindex
+      />
+
       <main
         className={`${
           openModal ? "fixed" : ""
@@ -34,6 +40,8 @@ export default function DashbordPage() {
         <HeaderApp />
 
         <HeaderAppDesktop />
+
+        {openModal && <ModalAddTransactions onRequestClose={setOpenModal} />}
 
         <section className="lg:w-3/4 lg:max-w-5xl lg:m-auto p-8">
           <div className="flex items-center justify-between">

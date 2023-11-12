@@ -41,7 +41,7 @@ export function ModalAddTransactions({
 
   return (
     <main className="absolute z-10 w-full h-screen bg-gray-70080">
-      <section className="w-4/5 p-8 bg-gray-100 opacity-100 m-auto mt-20 rounded-lg">
+      <section className="w-4/5 lg:w-4/12 p-8 bg-gray-100 opacity-100 m-auto mt-20 rounded-lg">
         <header>
           <h2 className="text-center text-xl font-semibold">
             Adicionar Transação
@@ -89,7 +89,7 @@ export function ModalAddTransactions({
 
             <p className="text-red-500 text-xs">{errors.date?.message}</p>
 
-            <div className="flex justify-between gap-1">
+            <div className="flex gap-4">
               <button
                 onClick={() => setCtaType("ganhos")}
                 type="button"
