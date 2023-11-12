@@ -1,4 +1,5 @@
 import PrivateRoute from "@/components/privateRoute";
+import { AllProvidersContext } from "@/provider";
 import "@/styles/globals.css";
 import { checkIsPublicRoute } from "@/utils/checkIspublicRoute";
 import type { AppProps } from "next/app";
@@ -20,5 +21,9 @@ export default function App({ Component, pageProps }: AppProps) {
   //   </>
   // );
 
-  return <Component {...pageProps} />;
+  return (
+    <AllProvidersContext>
+      <Component {...pageProps} />;
+    </AllProvidersContext>
+  );
 }
