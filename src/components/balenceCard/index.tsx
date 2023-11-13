@@ -17,7 +17,12 @@ export function BalenceCard({ title, value, ...rest }: BalenceCardProps) {
     >
       <div>
         <h4 className="text-sm font-normal">{title}</h4>
-        <p className="text-xl font-semibold">R$ {value.toFixed(2)}</p>
+        <p className="text-xl font-semibold">
+          {value.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }) ?? 0}
+        </p>
       </div>
 
       <div>

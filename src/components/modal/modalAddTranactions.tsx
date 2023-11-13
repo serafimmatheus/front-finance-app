@@ -1,4 +1,7 @@
+import { api } from "@/data/api";
+import { useAuthContext } from "@/provider/hooks/userAuthProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
+import dayjs from "dayjs";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,7 +11,7 @@ interface ModalAddTransactionsProps {
 }
 
 const schema = z.object({
-  title: z.string(),
+  name: z.string(),
   amount: z.string(),
   date: z.string(),
 });
@@ -18,9 +21,11 @@ type Transaction = z.infer<typeof schema>;
 export function ModalAddTransactions({
   onRequestClose,
 }: ModalAddTransactionsProps) {
-  const [ctatype, setCtaType] = useState<"gastos" | "ganhos" | "investimentos">(
+  const [ctatype, setCtaType] = useState<"perdas" | "ganhos" | "investimentos">(
     "ganhos"
   );
+
+  const { token } = useAuthContext();
 
   const {
     register,
@@ -30,13 +35,24 @@ export function ModalAddTransactions({
     resolver: zodResolver(schema),
   });
 
-  function handleAddTransaction(data: Transaction) {
+  async function handleAddTransaction(data: Transaction) {
     const newData = {
       ...data,
+      amount: Number(data.amount),
+      date: dayjs(data.date).toISOString(),
       type: ctatype,
     };
 
-    console.log(newData);
+    await api
+      .post("/transactions", newData, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((response) => {
+        onRequestClose(false);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
   }
 
   return (
@@ -59,11 +75,11 @@ export function ModalAddTransactions({
                 id="title"
                 className="bg-gray-150 focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
                 placeholder="Titulo"
-                {...register("title")}
+                {...register("name")}
               />
             </div>
 
-            <p className="text-red-500 text-xs">{errors.title?.message}</p>
+            <p className="text-red-500 text-xs">{errors.name?.message}</p>
 
             <div className="flex flex-col gap-1">
               <input
@@ -79,11 +95,12 @@ export function ModalAddTransactions({
 
             <div className="flex flex-col gap-1">
               <input
-                type="date"
+                type="datetime-local"
                 id="data"
                 className="bg-gray-150 focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
                 placeholder="Data"
                 {...register("date")}
+                max={dayjs().format("YYYY-MM-DDThh:mm")}
               />
             </div>
 
@@ -102,15 +119,15 @@ export function ModalAddTransactions({
                 Ganho
               </button>
               <button
-                onClick={() => setCtaType("gastos")}
+                onClick={() => setCtaType("perdas")}
                 type="button"
                 className={`px-4 py-2 border ${
-                  ctatype === "gastos"
+                  ctatype === "perdas"
                     ? "border-green-500 text-green-500"
                     : "border-gray-400 text-gray-400"
                 }  rounded-lg text-sm font-semibold`}
               >
-                Gasto
+                Gastos
               </button>
               <button
                 onClick={() => setCtaType("investimentos")}

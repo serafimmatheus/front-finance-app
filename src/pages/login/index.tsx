@@ -1,7 +1,7 @@
 import Image from "next/image";
 import logo from "src/assets/logo.png";
 import { EyeSlash } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MyButton } from "@/components/button";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -10,6 +10,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { NextSeo } from "next-seo";
 
 import imagLogin from "src/assets/login.jpg";
+import { useAuthContext } from "@/provider/hooks/userAuthProvider";
+import { useRouter } from "next/navigation";
 
 const schema = z.object({
   email: z.string().email(),
@@ -29,11 +31,22 @@ export default function LoginPage() {
     resolver: zodResolver(schema),
   });
 
-  const [toogle, setToogle] = useState(false);
+  const router = useRouter();
+
+  const { signIn, token, user } = useAuthContext();
+
+  const [toogle, setToogle] = useState(true);
 
   function onSubmit(data: IPropsSchema) {
-    console.log(data);
+    signIn(data.email, data.password);
   }
+
+  useEffect(() => {
+    if (token && user) {
+      router.push("/dashboard");
+    }
+  }, [router, token, user]);
+
   return (
     <>
       <NextSeo
@@ -41,85 +54,91 @@ export default function LoginPage() {
         description="Controle suas finanças pessoais de maneira fácil e inteligente!"
       />
 
-      <main className="p-8 max-w-4xl m-auto md:h-screen md:relative md:top-0 md:bottom-0 md:justify-center md:flex md:flex-col">
-        <header className="flex items-center gap-2 mb-14">
-          <div className="relative">
-            <Image
-              src={logo}
-              width={24}
-              height={15}
-              objectFit="contain"
-              alt="Logo simple finance app"
-            />
-          </div>
-          <h2 className="text-lg font-semibold cursor-pointer">
-            <Link href={"/"}>Simple Finance</Link>
-          </h2>
-        </header>
+      {user && token ? null : (
+        <main className="p-8 max-w-4xl m-auto md:h-screen md:relative md:top-0 md:bottom-0 md:justify-center md:flex md:flex-col">
+          <header className="flex items-center gap-2 mb-14">
+            <div className="relative">
+              <Image
+                src={logo}
+                width={24}
+                height={15}
+                objectFit="contain"
+                alt="Logo simple finance app"
+              />
+            </div>
+            <h2 className="text-lg font-semibold cursor-pointer">
+              <Link href={"/"}>Simple Finance</Link>
+            </h2>
+          </header>
 
-        <section className="md:flex md:gap-10">
-          <div className="relative hidden md:flex md:w-1/2">
-            <Image src={imagLogin} alt="Imagem do login ilustrativa" />
-          </div>
+          <section className="md:flex md:gap-10">
+            <div className="relative hidden md:flex md:w-1/2">
+              <Image src={imagLogin} alt="Imagem do login ilustrativa" />
+            </div>
 
-          <div className="flex flex-col md:w-1/2">
-            <h2 className="text-2xl font-semibold mb-5">Entrar na sua conta</h2>
-            <p className="text-sm font-normal mb-12">
-              Se não possui uma conta, você consegue
-              <Link
-                className="text-green-500 cursor-pointer underline"
-                href="/register"
-              >
-                {" "}
-                Criar uma!
-              </Link>
-            </p>
-
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="flex flex-col gap-3"
-            >
-              <div className="flex flex-col gap-1">
-                <input
-                  type="email"
-                  id="email"
-                  className="focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
-                  placeholder="Email"
-                  {...register("email", {
-                    required: "Campo obrigatório",
-                  })}
-                />
-              </div>
-
-              <p className="text-red-500 text-xs">{errors.email?.message}</p>
-
-              <div className="flex flex-col gap-1 relative">
-                <input
-                  type={toogle ? "password" : "text"}
-                  id="password"
-                  className="focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
-                  placeholder="Senha"
-                  {...register("password", {
-                    required: "Campo obrigatório",
-                  })}
-                />
-
-                <div className="absolute right-4 top-4">
-                  <EyeSlash size={24} onClick={() => setToogle(!toogle)} />
-                </div>
-              </div>
-
-              <p className="text-red-500 text-xs mb-10">
-                {errors.password?.message}
+            <div className="flex flex-col md:w-1/2">
+              <h2 className="text-2xl font-semibold mb-5">
+                Entrar na sua conta
+              </h2>
+              <p className="text-sm font-normal mb-12">
+                Se não possui uma conta, você consegue
+                <Link
+                  className="text-green-500 cursor-pointer underline"
+                  href="/register"
+                >
+                  {" "}
+                  Criar uma!
+                </Link>
               </p>
 
-              <MyButton isLoad={isSubmitting} type="primary">
-                Entrar
-              </MyButton>
-            </form>
-          </div>
-        </section>
-      </main>
+              <form
+                onSubmit={handleSubmit(onSubmit)}
+                className="flex flex-col gap-3"
+              >
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="email"
+                    id="email"
+                    className="focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
+                    placeholder="Email"
+                    autoComplete="email"
+                    {...register("email", {
+                      required: "Campo obrigatório",
+                    })}
+                  />
+                </div>
+
+                <p className="text-red-500 text-xs">{errors.email?.message}</p>
+
+                <div className="flex flex-col gap-1 relative">
+                  <input
+                    type={toogle ? "password" : "text"}
+                    id="password"
+                    className="focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
+                    placeholder="Senha"
+                    autoComplete="current-password"
+                    {...register("password", {
+                      required: "Campo obrigatório",
+                    })}
+                  />
+
+                  <div className="absolute right-4 top-4">
+                    <EyeSlash size={24} onClick={() => setToogle(!toogle)} />
+                  </div>
+                </div>
+
+                <p className="text-red-500 text-xs mb-10">
+                  {errors.password?.message}
+                </p>
+
+                <MyButton isLoad={isSubmitting} type="primary">
+                  Entrar
+                </MyButton>
+              </form>
+            </div>
+          </section>
+        </main>
+      )}
     </>
   );
 }
