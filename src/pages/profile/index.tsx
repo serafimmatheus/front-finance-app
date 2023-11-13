@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import minhaConta from "src/assets/minha-conta.jpg";
+import { useAuthContext } from "@/provider/hooks/userAuthProvider";
 
 const schema = z.object({
   firstName: z.string().min(3, { message: "Nome muito curto" }),
@@ -19,19 +20,23 @@ type User = z.infer<typeof schema>;
 export default function ProfilePage() {
   const [editar, setEditar] = useState(false);
 
+  const { user, editUser } = useAuthContext();
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<User>({
     resolver: zodResolver(schema),
+    defaultValues: {
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+    },
   });
 
-  function handleEditUser(data: User) {
-    console.log(data);
+  async function handleEditUser(data: User) {
+    await editUser(data);
   }
-
-  console.log(editar);
 
   return (
     <>
@@ -64,7 +69,7 @@ export default function ProfilePage() {
                   id="name"
                   className="focus:border focus:border-green-500 disabled:text-gray-200 disabled:bg-gray-100 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
                   placeholder="Nome"
-                  defaultValue={"Matheus"}
+                  defaultValue={user?.firstName}
                   disabled={!editar}
                   {...register("firstName")}
                 />
@@ -80,7 +85,7 @@ export default function ProfilePage() {
                   id="name"
                   className="focus:border focus:border-green-500 disabled:text-gray-200 disabled:bg-gray-100 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
                   placeholder="Nome"
-                  defaultValue={"Serafim"}
+                  defaultValue={user?.lastName}
                   disabled={!editar}
                   {...register("lastName")}
                 />
@@ -95,7 +100,7 @@ export default function ProfilePage() {
                   className="focus:border focus:border-green-500 disabled:text-gray-200 disabled:bg-gray-100 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300 mb-10"
                   placeholder="Email"
                   disabled
-                  defaultValue={"matheus18serafim@gmail.com"}
+                  defaultValue={user?.email}
                 />
               </div>
 
@@ -113,12 +118,14 @@ export default function ProfilePage() {
                     onClick={() => setEditar(false)}
                     type="button"
                     className="rounded-xl p-4 text-xs bg-gray-400 text-gray-100"
+                    disabled={isSubmitting}
                   >
                     Cancelar
                   </button>
 
                   <button
-                    type="button"
+                    disabled={isSubmitting}
+                    type="submit"
                     className="rounded-xl p-4 text-xs bg-green-500 text-gray-100"
                   >
                     Salvar
