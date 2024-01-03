@@ -2,7 +2,6 @@ import { HeaderAppDesktop } from "@/components/HeaderAppDesktop";
 import { BalenceCard } from "@/components/balenceCard";
 import { HeaderApp } from "@/components/headerApp";
 import { ModalAddTransactions } from "@/components/modal/modalAddTranactions";
-import { api } from "@/data/api";
 import { useAuthContext } from "@/provider/hooks/userAuthProvider";
 import { Export, Plus } from "@phosphor-icons/react";
 import dayjs from "dayjs";
@@ -19,26 +18,31 @@ interface IPropsBalence {
   userId: string;
 }
 
-interface IPropsTransactions {
-  amount: number;
-  createdAt: string;
-  date: string;
+type Transaction = {
   id: string;
   name: string;
+  date: string;
+  amount: number;
   type: string;
-  userId: string;
-}
+};
 
 export default function DashbordPage() {
   const [openModal, setOpenModal] = useState(false);
   const [balences, setBalences] = useState<IPropsBalence>();
-  const [transactions, setTransactions] = useState<IPropsTransactions[]>(
-    [] as IPropsTransactions[]
-  );
-  const [selectadeYear, setSelectadeYear] = useState(dayjs().format("YYYY"));
-  const [selectadeMonth, setSelectadeMonth] = useState(dayjs().format("MM"));
+  const [dataUpdated, setDataUpdated] = useState<Transaction>();
+
+  const {
+    selectadeMonth,
+    selectadeYear,
+    setSelectadeMonth,
+    setSelectadeYear,
+    getTransactionsUser,
+    transactions,
+    createTransaction,
+  } = useAuthContext();
+
   const dateFormater = `${selectadeYear}-${selectadeMonth}`;
-  const { user, token } = useAuthContext();
+  const { userAndToken } = useAuthContext();
 
   const router = useRouter();
 
@@ -56,33 +60,13 @@ export default function DashbordPage() {
     colors: ["#55D462", "#FD3E3E", "#589BFF"],
   };
 
-  async function getTransactionsUser() {
-    await api
-      .get("/transactions", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((response) => {
-        setTransactions(
-          response.data.filter(
-            (transaction: any) =>
-              dayjs(transaction.date).format("MM") ===
-              dayjs().format(selectadeMonth)
-          )
-        );
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
-
   async function fetchData() {
+    //
     const response = await fetch(
       `http://localhost:5001/api/balence/${dateFormater.toString()}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${userAndToken.token}`,
         },
       }
     );
@@ -92,13 +76,21 @@ export default function DashbordPage() {
   }
 
   useEffect(() => {
-    if (!token && !user) {
+    if (!userAndToken.token && !userAndToken.user) {
       router.push("/login");
     }
 
     fetchData();
+  }, [selectadeMonth, userAndToken.token, userAndToken.user, router]);
+
+  async function handleUpdatedTransaction(data: Transaction) {
+    setDataUpdated(data);
+    setOpenModal(true);
+  }
+
+  useEffect(() => {
     getTransactionsUser();
-  }, [selectadeMonth, token, user]);
+  }, [getTransactionsUser, transactions]);
 
   return (
     <>
@@ -107,7 +99,7 @@ export default function DashbordPage() {
         description="Controle suas finanças pessoais de maneira fácil e inteligente!"
         noindex
       />
-      {!token && !user ? null : (
+      {!userAndToken.token && !userAndToken.user ? null : (
         <main
           className={`${
             openModal ? "fixed" : ""
@@ -117,12 +109,21 @@ export default function DashbordPage() {
 
           <HeaderAppDesktop />
 
-          {openModal && <ModalAddTransactions onRequestClose={setOpenModal} />}
+          {openModal && (
+            <ModalAddTransactions
+              onRequestClose={setOpenModal}
+              data={dataUpdated}
+              onClearData={() => setDataUpdated({} as Transaction)}
+            />
+          )}
 
           <section className="lg:w-3/4 lg:max-w-5xl lg:m-auto p-8">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-normal">
-                Olá, <span className="font-semibold">{user?.firstName}!</span>
+                Olá,{" "}
+                <span className="font-semibold">
+                  {userAndToken.user?.firstName}!
+                </span>
               </h2>
 
               <select
@@ -174,62 +175,74 @@ export default function DashbordPage() {
                   </div>
                 </div>
 
-                <table className="mt-10">
-                  <thead>
-                    <tr>
-                      <td className="text-sm font-medium text-gray-300">
-                        Titulo
-                      </td>
-                      <td className="text-sm font-medium text-gray-300">
-                        Quantidade
-                      </td>
-                    </tr>
-                  </thead>
-
-                  <tbody className="">
-                    {transactions.map((transaction) => (
-                      <tr
-                        key={transaction.id}
-                        className="border-b border-gray-200 last:border-gray-100"
-                      >
-                        <td className="flex items-center gap-2 py-4">
-                          <div
-                            className={`w-4 h-4 ${
-                              (transaction.type === "perdas" && "bg-red-500") ||
-                              (transaction.type === "ganhos" &&
-                                "bg-green-500") ||
-                              (transaction.type === "investimentos" &&
-                                "bg-blue-500")
-                            } rounded-full`}
-                          ></div>
-                          <p className="text-sm w-full font-normal text-gray-500">
-                            {transaction.name}
-                          </p>
+                {transactions.length === 0 ? (
+                  <div className="border border-dashed mt-10 h-full flex items-center justify-center animate-pulse">
+                    <p className="text-base text-gray-300">
+                      Você não possui nenhuma transação!
+                    </p>
+                  </div>
+                ) : (
+                  <table className="mt-10">
+                    <thead>
+                      <tr>
+                        <td className="text-sm font-medium text-gray-300">
+                          Titulo
                         </td>
-                        <td>
-                          <p className="text-sm font-semibold text-gray-500">
-                            {transaction.amount.toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            }) ?? 0}
-                          </p>
+                        <td className="text-sm font-medium text-gray-300">
+                          Quantidade
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+
+                    <tbody className="">
+                      {transactions.map((transaction) => (
+                        <tr
+                          key={transaction.id}
+                          className="border-b border-gray-200 last:border-gray-100 cursor-pointer"
+                          onClick={() => handleUpdatedTransaction(transaction)}
+                        >
+                          <td className="flex items-center gap-2 py-4">
+                            <div
+                              className={`w-4 h-4 ${
+                                (transaction.type === "perdas" &&
+                                  "bg-red-500") ||
+                                (transaction.type === "ganhos" &&
+                                  "bg-green-500") ||
+                                (transaction.type === "investimentos" &&
+                                  "bg-blue-500")
+                              } rounded-full`}
+                            ></div>
+                            <p className="text-sm w-full font-normal text-gray-500">
+                              {transaction.name}
+                            </p>
+                          </td>
+                          <td>
+                            <p className="text-sm font-semibold text-gray-500">
+                              {transaction.amount.toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              }) ?? 0}
+                            </p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
 
-              <div className="flex lg:w-1/2 lg:items-center ">
-                <Chart
-                  className="w-full"
-                  chartType="PieChart"
-                  width="100%"
-                  height="auto"
-                  data={data}
-                  options={options}
-                />
-              </div>
+              {transactions.length === 0 ? null : (
+                <div className="flex lg:w-1/2 lg:items-center ">
+                  <Chart
+                    className="w-full"
+                    chartType="PieChart"
+                    width="100%"
+                    height="auto"
+                    data={data}
+                    options={options}
+                  />
+                </div>
+              )}
             </div>
           </section>
         </main>

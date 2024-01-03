@@ -8,6 +8,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { NextSeo } from "next-seo";
+import { toast } from "react-toastify";
 
 import imagLogin from "src/assets/login.jpg";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ const schema = z.object({
   firstName: z.string().min(3),
   lastName: z.string().min(3),
   email: z.string().email(),
-  password: z
+  passwordHash: z
     .string()
     .min(8, { message: "Senha deve ter no mínimo 8 dígitos" }),
 });
@@ -29,7 +30,9 @@ export default function RegisterPage() {
 
   const router = useRouter();
 
-  const { token, user } = useAuthContext();
+  const { userAndToken, registerUser } = useAuthContext();
+
+  const { token, user } = userAndToken;
 
   const {
     register,
@@ -39,8 +42,34 @@ export default function RegisterPage() {
     resolver: zodResolver(schema),
   });
 
-  function onSubmit(data: IPropsSchema) {
-    console.log(data);
+  async function onSubmit(data: IPropsSchema) {
+    await registerUser(data)
+      .then(() => {
+        toast.success("Usuário cadastrado com sucesso!", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+
+        router.push("/login");
+      })
+      .catch((error) => {
+        toast.error(error.response.data.message, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      });
   }
 
   useEffect(() => {
@@ -147,7 +176,7 @@ export default function RegisterPage() {
                     id="password"
                     className="focus:border focus:border-green-500 rounded-xl py-4 px-6 placeholder:text-sm placeholder:text-gray-300"
                     placeholder="Senha"
-                    {...register("password", {
+                    {...register("passwordHash", {
                       required: "Campo obrigatório",
                     })}
                   />
@@ -158,7 +187,7 @@ export default function RegisterPage() {
                 </div>
 
                 <p className="text-red-500 text-xs">
-                  {errors.password?.message}
+                  {errors.passwordHash?.message}
                 </p>
 
                 <MyButton isLoad={isSubmitting} type="primary">
